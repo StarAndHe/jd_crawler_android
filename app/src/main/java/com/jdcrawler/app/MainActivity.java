@@ -364,13 +364,14 @@ public class MainActivity extends AppCompatActivity {
                 getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             
             if (enabledServices != null) {
-                // 正确的服务完整路径，与AndroidManifest.xml中的声明一致
-                String serviceId = getPackageName() + "/.service.JDCrawlerAccessibilityService";
-                boolean isEnabled = enabledServices.contains(serviceId);
+                // 根据日志分析，正确的服务路径格式
+                String serviceId = getPackageName() + "/com.jdcrawler.app.service.JDCrawlerAccessibilityService";
                 
-                // 调试日志，可以通过adb logcat查看
-                android.util.Log.d(TAG, "Enabled services: " + enabledServices);
+                // 调试日志
+                android.util.Log.d(TAG, "All enabled services: " + enabledServices);
                 android.util.Log.d(TAG, "Looking for service: " + serviceId);
+                
+                boolean isEnabled = enabledServices.contains(serviceId);
                 android.util.Log.d(TAG, "Service enabled: " + isEnabled);
                 
                 return isEnabled;
