@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -197,14 +198,35 @@ public class MainActivity extends AppCompatActivity {
         }
         
         if (!isJDAppInstalled()) {
-            showToast("请先安装京东APP");
+            // 显示跳过检测的选项
+            new AlertDialog.Builder(this)
+                .setTitle("未检测到京东APP")
+                .setMessage("系统未检测到京东APP，但您可以选择：\n\n" +
+                           "• 确保已安装京东APP后重试\n" +
+                           "• 跳过检测，直接开始爬取\n\n" +
+                           "注意：如果没有京东APP，爬虫将无法工作")
+                .setPositiveButton("跳过检测，继续", (dialog, which) -> {
+                    forceStartCrawling();
+                })
+                .setNegativeButton("取消", null)
+                .setNeutralButton("重新检测", (dialog, which) -> {
+                    // 重新检测
+                    startCrawling();
+                })
+                .show();
             return;
         }
         
         // 发送开始爬取的广播
+        forceStartCrawling();
+    }
+    
+    /**
+     * 强制开始爬取（跳过京东APP检测）
+     */
+    private void forceStartCrawling() {
         Intent intent = new Intent("com.jdcrawler.START_CRAWLING");
         sendBroadcast(intent);
-        
         showToast("开始爬取，请打开京东APP并浏览商品页面");
     }
     
@@ -303,53 +325,40 @@ public class MainActivity extends AppCompatActivity {
                 .show();
         }
     }
-    
     /**
      * 更新UI状态
      */
     private void updateUI() {
         runOnUiThread(() -> {
             // 更新服务状态
-            if (isAccessibilityServiceEnabled()) {
-                tvServiceStatus.setText("服务状态：已连接");
-                tvServiceStatus.setTextColor(getColor(R.color.status_ready));
-                isServiceConnected = true;
-            } else {
-                tvServiceStatus.setText("服务状态：未连接");
-                tvServiceStatus.setTextColor(getColor(R.color.status_error));
-                isServiceConnected = false;
-            }
+            boolean serviceEnabled = isAccessibilityServiceEnabled();
+            tvServiceStatus.setText(serviceEnabled ? "无障碍服务：已开启" : "无障碍服务：未开启");
+            tvServiceStatus.setTextColor(serviceEnabled ? 
+                getResources().getColor(android.R.color.holo_green_dark) : 
+                getResources().getColor(android.R.color.holo_red_dark));
             
             // 更新爬取状态
-            if (isCrawling) {
-                tvCrawlingStatus.setText("爬取状态：进行中");
-                tvCrawlingStatus.setTextColor(getColor(R.color.status_crawling));
-                btnStartCrawling.setEnabled(false);
-                btnStopCrawling.setEnabled(true);
-            } else {
-                tvCrawlingStatus.setText("爬取状态：已停止");
-                tvCrawlingStatus.setTextColor(getColor(R.color.status_stopped));
-                btnStartCrawling.setEnabled(isServiceConnected);
-                btnStopCrawling.setEnabled(false);
-            }
+            tvCrawlingStatus.setText(isCrawling ? "状态：正在爬取" : "状态：待机中");
+            tvCrawlingStatus.setTextColor(isCrawling ? 
+                getResources().getColor(android.R.color.holo_blue_bright) : 
+                getResources().getColor(android.R.color.darker_gray));
             
             // 更新商品计数
-            tvProductCount.setText(String.format("已收集商品：%d个", currentProductCount));
+            tvProductCount.setText("已收集商品：" + currentProductCount);
             
             // 更新进度
             if (totalProductCount > 0) {
-                int progress = (int) ((float) currentProductCount / totalProductCount * 100);
+                int progress = (int) ((currentProductCount * 100.0) / totalProductCount);
                 progressBar.setProgress(progress);
-                tvCurrentProgress.setText(String.format("进度：%d/%d (%d%%)", 
-                    currentProductCount, totalProductCount, progress));
-                progressBar.setVisibility(View.VISIBLE);
-                tvCurrentProgress.setVisibility(View.VISIBLE);
+                tvCurrentProgress.setText(progress + "%");
             } else {
-                progressBar.setVisibility(View.GONE);
-                tvCurrentProgress.setVisibility(View.GONE);
+                progressBar.setProgress(0);
+                tvCurrentProgress.setText("0%");
             }
             
             // 更新按钮状态
+            btnStartCrawling.setEnabled(serviceEnabled && !isCrawling);
+            btnStopCrawling.setEnabled(isCrawling);
             btnExportData.setEnabled(currentProductCount > 0);
             btnShareData.setEnabled(!lastExportedFile.isEmpty());
         });
@@ -360,73 +369,69 @@ public class MainActivity extends AppCompatActivity {
      */
     private boolean isAccessibilityServiceEnabled() {
         try {
+            String service = getPackageName() + "/com.jdcrawler.app.service.JDCrawlerAccessibilityService";
             String enabledServices = Settings.Secure.getString(
-                getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+                getContentResolver(), 
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             
             if (enabledServices != null) {
-                // 根据日志分析，正确的服务路径格式
-                String serviceId = getPackageName() + "/com.jdcrawler.app.service.JDCrawlerAccessibilityService";
-                
-                // 调试日志
-                android.util.Log.d(TAG, "All enabled services: " + enabledServices);
-                android.util.Log.d(TAG, "Looking for service: " + serviceId);
-                
-                boolean isEnabled = enabledServices.contains(serviceId);
-                android.util.Log.d(TAG, "Service enabled: " + isEnabled);
-                
-                return isEnabled;
+                return enabledServices.contains(service);
             }
         } catch (Exception e) {
-            android.util.Log.e(TAG, "Error checking accessibility service", e);
+            Log.e(TAG, "检查无障碍服务状态失败", e);
         }
         return false;
     }
     
     /**
-     * 检查京东APP是否安装
+     * 检查京东APP是否已安装
      */
     private boolean isJDAppInstalled() {
-        // 可能的京东APP包名
+        // 方案1: 检测常见京东APP包名
         String[] jdPackageNames = {
             "com.jingdong.app.mall",           // 官方版本
             "com.jd.jdmobile",                 // 国际版本
             "com.jingdong.jdlite",            // 京东极速版
-            "com.jingdong.pdj",               // 京东拼购
-            "com.jd.jdhealth"                 // 京东健康
+            "com.jd.jdlite",                   // 另一个极速版包名
+            "com.jingdong.app.mall.ptlogin"   // 登录相关
         };
         
         PackageManager pm = getPackageManager();
-        android.util.Log.d(TAG, "开始检测京东APP安装情况...");
         
+        // 第一阶段：通过PackageManager检查
         for (String packageName : jdPackageNames) {
             try {
                 pm.getPackageInfo(packageName, 0);
-                android.util.Log.d(TAG, "找到京东APP: " + packageName);
+                Log.d(TAG, "通过PackageManager找到京东APP: " + packageName);
                 return true;
             } catch (PackageManager.NameNotFoundException e) {
-                android.util.Log.d(TAG, "未找到包名: " + packageName);
+                // 继续检查下一个
             }
         }
         
-        // 如果都没找到，记录所有已安装的应用（仅包含京东相关）
+        // 第二阶段：通过Intent检查
         try {
-            java.util.List<android.content.pm.ApplicationInfo> installedApps = 
-                pm.getInstalledApplications(PackageManager.GET_META_DATA);
-            
-            android.util.Log.d(TAG, "搜索包含'jd'或'jing'的已安装应用:");
-            for (android.content.pm.ApplicationInfo app : installedApps) {
-                String packageName = app.packageName.toLowerCase();
-                if (packageName.contains("jd") || packageName.contains("jing") || 
-                    packageName.contains("dongdong") || packageName.contains("京东")) {
-                    android.util.Log.d(TAG, "相关应用: " + app.packageName + " - " + 
-                        pm.getApplicationLabel(app));
-                }
+            Intent launchIntent = pm.getLaunchIntentForPackage("com.jingdong.app.mall");
+            if (launchIntent != null) {
+                Log.d(TAG, "通过Intent找到京东APP");
+                return true;
             }
         } catch (Exception e) {
-            android.util.Log.e(TAG, "获取已安装应用列表失败", e);
+            Log.w(TAG, "Intent检查失败", e);
         }
         
-        android.util.Log.d(TAG, "未找到任何京东APP");
+        // 第三阶段：通过应用列表检查
+        try {
+            android.content.pm.ApplicationInfo appInfo = pm.getApplicationInfo("com.jingdong.app.mall", 0);
+            if (appInfo != null) {
+                Log.d(TAG, "通过应用信息找到京东APP");
+                return true;
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(TAG, "应用信息检查未找到京东APP");
+        }
+        
+        Log.w(TAG, "所有检测方案都未找到京东APP");
         return false;
     }
     
@@ -437,19 +442,26 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
     
+    /**
+     * 权限请求结果处理
+     */
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, 
+                                         @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         
         if (requestCode == REQUEST_STORAGE_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 showToast("存储权限已授予");
             } else {
-                showToast("需要存储权限才能保存文件");
+                showToast("存储权限被拒绝，可能影响数据导出功能");
             }
         }
     }
     
+    /**
+     * Activity结果处理
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -457,8 +469,6 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_OVERLAY_PERMISSION) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
                 showToast("悬浮窗权限已开启");
-            } else {
-                showToast("悬浮窗权限未开启，将无法显示悬浮进度");
             }
         }
     }
@@ -466,7 +476,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 当从设置页面返回时，重新检查权限状态
         updateUI();
     }
     
@@ -479,7 +488,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     /**
-     * 广播接收器
+     * 广播接收器 - 接收爬虫服务的状态更新
      */
     private class CrawlerBroadcastReceiver extends BroadcastReceiver {
         @Override
@@ -489,7 +498,8 @@ public class MainActivity extends AppCompatActivity {
             
             switch (action) {
                 case "com.jdcrawler.SERVICE_STATUS":
-                    isServiceConnected = intent.getBooleanExtra("connected", false);
+                    boolean connected = intent.getBooleanExtra("connected", false);
+                    isServiceConnected = connected;
                     updateUI();
                     break;
                     
@@ -508,14 +518,11 @@ public class MainActivity extends AppCompatActivity {
                 case "com.jdcrawler.CRAWLING_STOP":
                     isCrawling = false;
                     updateUI();
-                    showToast("爬取已停止");
                     break;
                     
                 case "com.jdcrawler.CRAWLING_COMPLETE":
                     isCrawling = false;
                     int productCount = intent.getIntExtra("productCount", 0);
-                    currentProductCount = productCount;
-                    lastExportedFile = intent.getStringExtra("exportedFile");
                     updateUI();
                     showToast("爬取完成！共收集 " + productCount + " 个商品");
                     break;
