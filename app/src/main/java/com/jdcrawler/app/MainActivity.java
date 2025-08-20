@@ -235,11 +235,15 @@ public class MainActivity extends AppCompatActivity {
                        "4. 爬虫会自动开始工作\n\n" +
                        "注意：爬虫在后台运行，您可以从通知栏查看进度")
             .setPositiveButton("确定，开始爬取", (dialog, which) -> {
-                // 启动爬取服务
+                // 启动爬取服务 - 使用显式Intent和系统级广播
                 Intent intent = new Intent("com.jdcrawler.START_CRAWLING");
+                // 添加系统级广播标志
+                intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                intent.setPackage(getPackageName());
+                
                 sendBroadcast(intent);
                 
-                Log.d(TAG, "✓ 已发送开始爬取广播: com.jdcrawler.START_CRAWLING");
+                Log.d(TAG, "✓ 已发送开始爬取广播: com.jdcrawler.START_CRAWLING (系统级)");
                 
                 // 最小化应用
                 moveTaskToBack(true);
@@ -256,9 +260,13 @@ public class MainActivity extends AppCompatActivity {
      */
     private void stopCrawling() {
         Intent intent = new Intent("com.jdcrawler.STOP_CRAWLING");
+        // 添加系统级广播标志
+        intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+        intent.setPackage(getPackageName());
+        
         sendBroadcast(intent);
         
-        Log.d(TAG, "✓ 已发送停止爬取广播: com.jdcrawler.STOP_CRAWLING");
+        Log.d(TAG, "✓ 已发送停止爬取广播: com.jdcrawler.STOP_CRAWLING (系统级)");
         
         showToast("正在停止爬取...");
     }
@@ -274,7 +282,12 @@ public class MainActivity extends AppCompatActivity {
         
         // 这里可以触发导出操作
         Intent intent = new Intent("com.jdcrawler.EXPORT_DATA");
+        // 添加系统级广播标志
+        intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+        intent.setPackage(getPackageName());
+        
         sendBroadcast(intent);
+        Log.d(TAG, "✓ 已发送导出数据广播: com.jdcrawler.EXPORT_DATA (系统级)");
         showToast("正在导出数据...");
     }
     
