@@ -1,0 +1,132 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.jdcrawler.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.jdcrawler.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // 优化构建性能
+        multiDexEnabled true
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+            shrinkResources false
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+        
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // 如果有签名配置
+            if (project.hasProperty('SIGNING_KEY_ALIAS')) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    
+    // 签名配置（可选）
+    signingConfigs {
+        release {
+            if (project.hasProperty('SIGNING_KEY_ALIAS')) {
+                keyAlias project.SIGNING_KEY_ALIAS
+                keyPassword project.SIGNING_KEY_PASSWORD
+                storeFile file('keystore.jks')
+                storePassword project.SIGNING_STORE_PASSWORD
+            }
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    buildFeatures {
+        viewBinding true
+    }
+    
+    // 优化编译
+    dexOptions {
+        javaMaxHeapSize "4g"
+        preDexLibraries = false
+    }
+    
+    // 排除重复文件
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/ASL2.0'
+        exclude 'META-INF/*.kotlin_module'
+        
+        // Apache POI相关
+        exclude 'META-INF/versions/9/module-info.class'
+        exclude 'META-INF/io.netty.versions.properties'
+        exclude 'META-INF/INDEX.LIST'
+    }
+    
+    // Lint配置
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+        disable 'InvalidPackage'
+        disable 'UnusedResources'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
+    
+    // Apache POI for Excel generation
+    implementation 'org.apache.poi:poi:5.2.4'
+    implementation 'org.apache.poi:poi-ooxml:5.2.4'
+    implementation 'org.apache.poi:poi-scratchpad:5.2.4'
+    
+    // Additional dependencies for Excel
+    implementation 'com.fasterxml.woodstox:woodstox-core:6.5.1'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'org.apache.commons:commons-compress:1.24.0'
+    implementation 'commons-codec:commons-codec:1.16.0'
+    
+    // 测试依赖
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    
+    // 多媒体支持
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
+
+// 任务优化
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ["-Xlint:deprecation", "-Xlint:unchecked"]
+    options.encoding = "UTF-8"
+}
+
+// 清理任务
+task cleanAll(type: Delete) {
+    delete rootProject.buildDir
+    delete project.buildDir
+}

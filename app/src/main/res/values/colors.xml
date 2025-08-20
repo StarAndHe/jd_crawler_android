@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Light Theme Colors -->
+    <color name="md_theme_light_primary">#D32F2F</color>
+    <color name="md_theme_light_onPrimary">#FFFFFF</color>
+    <color name="md_theme_light_primaryContainer">#FFEBEE</color>
+    <color name="md_theme_light_onPrimaryContainer">#B71C1C</color>
+    <color name="md_theme_light_secondary">#FF5722</color>
+    <color name="md_theme_light_onSecondary">#FFFFFF</color>
+    <color name="md_theme_light_secondaryContainer">#FFF3E0</color>
+    <color name="md_theme_light_onSecondaryContainer">#E65100</color>
+    <color name="md_theme_light_tertiary">#795548</color>
+    <color name="md_theme_light_onTertiary">#FFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#F5F5F5</color>
+    <color name="md_theme_light_onTertiaryContainer">#3E2723</color>
+    <color name="md_theme_light_error">#B00020</color>
+    <color name="md_theme_light_errorContainer">#FDEAEA</color>
+    <color name="md_theme_light_onError">#FFFFFF</color>
+    <color name="md_theme_light_onErrorContainer">#410E0B</color>
+    <color name="md_theme_light_background">#FAFAFA</color>
+    <color name="md_theme_light_onBackground">#1C1B1F</color>
+    <color name="md_theme_light_surface">#FFFFFF</color>
+    <color name="md_theme_light_onSurface">#1C1B1F</color>
+    <color name="md_theme_light_surfaceVariant">#F5F5F5</color>
+    <color name="md_theme_light_onSurfaceVariant">#49454F</color>
+    <color name="md_theme_light_outline">#79747E</color>
+    <color name="md_theme_light_inverseOnSurface">#F4EFF4</color>
+    <color name="md_theme_light_inverseSurface">#313033</color>
+    <color name="md_theme_light_inversePrimary">#FFB4AB</color>
+    
+    <!-- 状态颜色 -->
+    <color name="status_ready">#4CAF50</color>
+    <color name="status_crawling">#FF9800</color>
+    <color name="status_error">#F44336</color>
+    <color name="status_stopped">#9E9E9E</color>
+    
+    <!-- 京东品牌色 -->
+    <color name="jd_red">#E23535</color>
+    <color name="jd_red_dark">#C62828</color>
+    
+</resources>

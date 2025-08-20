@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">京东爬虫助手</string>
+    
+    <!-- 主界面 -->
+    <string name="main_title">京东商品爬虫</string>
+    <string name="start_crawling">开始爬取</string>
+    <string name="stop_crawling">停止爬取</string>
+    <string name="open_accessibility_settings">开启无障碍权限</string>
+    <string name="crawling_status">爬取状态：%s</string>
+    <string name="products_found">已找到商品：%d个</string>
+    <string name="export_excel">导出Excel</string>
+    <string name="share_file">分享文件</string>
+    
+    <!-- 状态消息 -->
+    <string name="status_ready">准备就绪</string>
+    <string name="status_crawling">正在爬取</string>
+    <string name="status_stopped">已停止</string>
+    <string name="status_error">发生错误</string>
+    
+    <!-- 无障碍服务 -->
+    <string name="accessibility_service_description">京东商品爬虫服务，用于自动化提取商品信息</string>
+    <string name="accessibility_not_enabled">请先开启无障碍服务权限</string>
+    <string name="please_open_jd_app">请打开京东APP并浏览商品页面</string>
+    
+    <!-- 文件操作 -->
+    <string name="excel_exported">Excel文件已导出</string>
+    <string name="export_failed">导出失败</string>
+    <string name="file_shared">文件分享成功</string>
+    <string name="share_failed">分享失败</string>
+    
+    <!-- 权限相关 -->
+    <string name="storage_permission_needed">需要存储权限以保存文件</string>
+    <string name="overlay_permission_needed">需要悬浮窗权限以显示进度</string>
+    
+    <!-- 设置 -->
+    <string name="settings">设置</string>
+    <string name="crawl_delay">爬取延时(秒)</string>
+    <string name="max_products">最大商品数</string>
+    <string name="enable_float_window">启用悬浮窗</string>
+    
+    <!-- 提示信息 -->
+    <string name="tip_how_to_use">使用提示：\n1. 开启无障碍服务权限\n2. 打开京东APP\n3. 浏览商品列表页面\n4. 点击开始爬取</string>
+    
+</resources>
