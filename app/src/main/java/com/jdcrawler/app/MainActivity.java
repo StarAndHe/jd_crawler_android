@@ -28,6 +28,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
+import java.util.List;
 
 /**
  * 主界面Activity
@@ -238,6 +239,8 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent("com.jdcrawler.START_CRAWLING");
                 sendBroadcast(intent);
                 
+                Log.d(TAG, "✓ 已发送开始爬取广播: com.jdcrawler.START_CRAWLING");
+                
                 // 最小化应用
                 moveTaskToBack(true);
                 
@@ -254,6 +257,9 @@ public class MainActivity extends AppCompatActivity {
     private void stopCrawling() {
         Intent intent = new Intent("com.jdcrawler.STOP_CRAWLING");
         sendBroadcast(intent);
+        
+        Log.d(TAG, "✓ 已发送停止爬取广播: com.jdcrawler.STOP_CRAWLING");
+        
         showToast("正在停止爬取...");
     }
     
@@ -419,11 +425,13 @@ public class MainActivity extends AppCompatActivity {
         // 第一阶段：通过PackageManager检查
         for (String packageName : jdPackageNames) {
             try {
-                pm.getPackageInfo(packageName, 0);
-                Log.d(TAG, "通过PackageManager找到京东APP: " + packageName);
+                android.content.pm.PackageInfo packageInfo = pm.getPackageInfo(packageName, 0);
+                Log.d(TAG, "✓ 通过PackageManager找到京东APP: " + packageName);
+                Log.d(TAG, "应用版本: " + packageInfo.versionName);
+                showToast("检测到京东APP: " + packageName);
                 return true;
             } catch (PackageManager.NameNotFoundException e) {
-                // 继续检查下一个
+                Log.d(TAG, "× 未找到包名: " + packageName);
             }
         }
         
@@ -431,7 +439,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             Intent launchIntent = pm.getLaunchIntentForPackage("com.jingdong.app.mall");
             if (launchIntent != null) {
-                Log.d(TAG, "通过Intent找到京东APP");
+                Log.d(TAG, "✓ 通过Intent找到京东APP");
                 return true;
             }
         } catch (Exception e) {
@@ -442,15 +450,53 @@ public class MainActivity extends AppCompatActivity {
         try {
             android.content.pm.ApplicationInfo appInfo = pm.getApplicationInfo("com.jingdong.app.mall", 0);
             if (appInfo != null) {
-                Log.d(TAG, "通过应用信息找到京东APP");
+                Log.d(TAG, "✓ 通过应用信息找到京东APP");
+                Log.d(TAG, "应用路径: " + appInfo.sourceDir);
                 return true;
             }
         } catch (PackageManager.NameNotFoundException e) {
-            Log.w(TAG, "应用信息检查未找到京东APP");
+            Log.w(TAG, "× 应用信息检查未找到京东APP");
         }
         
-        Log.w(TAG, "所有检测方案都未找到京东APP");
+        // 第四阶段：列出所有可能相关的应用（调试用）
+        listPossibleJDApps();
+        
+        Log.w(TAG, "× 所有检测方案都未找到京东APP");
         return false;
+    }
+    
+    /**
+     * 列出可能的京东相关应用（调试用）
+     */
+    private void listPossibleJDApps() {
+        try {
+            PackageManager pm = getPackageManager();
+            List<android.content.pm.ApplicationInfo> apps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+            
+            Log.d(TAG, "=== 搜索可能的京东相关应用 ===");
+            int foundCount = 0;
+            
+            for (android.content.pm.ApplicationInfo app : apps) {
+                String packageName = app.packageName.toLowerCase();
+                if (packageName.contains("jd") || 
+                    packageName.contains("jingdong") || 
+                    packageName.contains("京东")) {
+                    
+                    String appName = pm.getApplicationLabel(app).toString();
+                    Log.d(TAG, "可能的京东应用: " + app.packageName + " (" + appName + ")");
+                    foundCount++;
+                }
+            }
+            
+            if (foundCount == 0) {
+                Log.d(TAG, "未找到任何京东相关应用");
+            } else {
+                Log.d(TAG, "共找到 " + foundCount + " 个可能相关的应用");
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "列出应用时发生错误", e);
+        }
     }
     
     /**
