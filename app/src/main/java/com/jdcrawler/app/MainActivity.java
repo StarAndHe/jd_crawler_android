@@ -386,12 +386,48 @@ public class MainActivity extends AppCompatActivity {
      * 检查京东APP是否安装
      */
     private boolean isJDAppInstalled() {
-        try {
-            getPackageManager().getPackageInfo("com.jingdong.app.mall", 0);
-            return true;
-        } catch (PackageManager.NameNotFoundException e) {
-            return false;
+        // 可能的京东APP包名
+        String[] jdPackageNames = {
+            "com.jingdong.app.mall",           // 官方版本
+            "com.jd.jdmobile",                 // 国际版本
+            "com.jingdong.jdlite",            // 京东极速版
+            "com.jingdong.pdj",               // 京东拼购
+            "com.jd.jdhealth"                 // 京东健康
+        };
+        
+        PackageManager pm = getPackageManager();
+        android.util.Log.d(TAG, "开始检测京东APP安装情况...");
+        
+        for (String packageName : jdPackageNames) {
+            try {
+                pm.getPackageInfo(packageName, 0);
+                android.util.Log.d(TAG, "找到京东APP: " + packageName);
+                return true;
+            } catch (PackageManager.NameNotFoundException e) {
+                android.util.Log.d(TAG, "未找到包名: " + packageName);
+            }
         }
+        
+        // 如果都没找到，记录所有已安装的应用（仅包含京东相关）
+        try {
+            java.util.List<android.content.pm.ApplicationInfo> installedApps = 
+                pm.getInstalledApplications(PackageManager.GET_META_DATA);
+            
+            android.util.Log.d(TAG, "搜索包含'jd'或'jing'的已安装应用:");
+            for (android.content.pm.ApplicationInfo app : installedApps) {
+                String packageName = app.packageName.toLowerCase();
+                if (packageName.contains("jd") || packageName.contains("jing") || 
+                    packageName.contains("dongdong") || packageName.contains("京东")) {
+                    android.util.Log.d(TAG, "相关应用: " + app.packageName + " - " + 
+                        pm.getApplicationLabel(app));
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "获取已安装应用列表失败", e);
+        }
+        
+        android.util.Log.d(TAG, "未找到任何京东APP");
+        return false;
     }
     
     /**
