@@ -510,6 +510,8 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         try {
             // 创建停止爬取的Intent
             Intent stopIntent = new Intent("com.jdcrawler.STOP_CRAWLING");
+            stopIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+            stopIntent.setPackage(getPackageName());
             PendingIntent stopPendingIntent = PendingIntent.getBroadcast(
                 this, 0, stopIntent, 
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0
