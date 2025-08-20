@@ -310,12 +310,14 @@ public class MainActivity extends AppCompatActivity {
     private void updateUI() {
         runOnUiThread(() -> {
             // 更新服务状态
-            if (isServiceConnected) {
+            if (isAccessibilityServiceEnabled()) {
                 tvServiceStatus.setText("服务状态：已连接");
                 tvServiceStatus.setTextColor(getColor(R.color.status_ready));
+                isServiceConnected = true;
             } else {
                 tvServiceStatus.setText("服务状态：未连接");
                 tvServiceStatus.setTextColor(getColor(R.color.status_error));
+                isServiceConnected = false;
             }
             
             // 更新爬取状态
@@ -362,8 +364,9 @@ public class MainActivity extends AppCompatActivity {
                 getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             
             if (enabledServices != null) {
-                return enabledServices.contains(getPackageName() + "/" + 
-                    "com.jdcrawler.app.service.JDCrawlerAccessibilityService");
+                // 正确的服务完整路径
+                String serviceId = getPackageName() + "/" + getPackageName() + ".service.JDCrawlerAccessibilityService";
+                return enabledServices.contains(serviceId);
             }
         } catch (Exception e) {
             // 忽略异常
@@ -417,6 +420,13 @@ public class MainActivity extends AppCompatActivity {
     }
     
     @Override
+    protected void onResume() {
+        super.onResume();
+        // 当从设置页面返回时，重新检查权限状态
+        updateUI();
+    }
+    
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (broadcastReceiver != null) {
@@ -461,6 +471,7 @@ public class MainActivity extends AppCompatActivity {
                     isCrawling = false;
                     int productCount = intent.getIntExtra("productCount", 0);
                     currentProductCount = productCount;
+                    lastExportedFile = intent.getStringExtra("exportedFile");
                     updateUI();
                     showToast("爬取完成！共收集 " + productCount + " 个商品");
                     break;
