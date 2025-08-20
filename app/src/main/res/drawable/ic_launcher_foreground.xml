@@ -8,42 +8,20 @@
         android:scaleY="0.6"
         android:translateX="21.6"
         android:translateY="21.6">
-        <!-- 爬虫机器人图标 -->
+        <!-- 机器人头部 -->
         <path
             android:fillColor="@android:color/white"
             android:pathData="M32,16c-8.84,0 -16,7.16 -16,16v16c0,8.84 7.16,16 16,16h32c8.84,0 16,-7.16 16,-16V32c0,-8.84 -7.16,-16 -16,-16H32z"/>
-        <!-- 眼睛 -->
-        <circle
+        <!-- 眼睛 (用path替代circle) -->
+        <path
             android:fillColor="#E23535"
-            android:cx="42"
-            android:cy="36"
-            android:r="4"/>
-        <circle
+            android:pathData="M38,32a4,4 0,1 1,8 0,4 4,0 0,1 -8,0z"/>
+        <path
             android:fillColor="#E23535"
-            android:cx="54"
-            android:cy="36"
-            android:r="4"/>
+            android:pathData="M50,32a4,4 0,1 1,8 0,4 4,0 0,1 -8,0z"/>
         <!-- 嘴巴 -->
         <path
             android:fillColor="#E23535"
             android:pathData="M40,46h16c2,0 2,4 0,4H40c-2,0 -2,-4 0,-4z"/>
-        <!-- 触角/天线 -->
-        <path
-            android:fillColor="@android:color/white"
-            android:pathData="M36,12v8h4v-8c0,-2 -4,-2 -4,0z"/>
-        <path
-            android:fillColor="@android:color/white"
-            android:pathData="M56,12v8h4v-8c0,-2 -4,-2 -4,0z"/>
-        <!-- 天线球 -->
-        <circle
-            android:fillColor="@android:color/white"
-            android:cx="38"
-            android:cy="10"
-            android:r="3"/>
-        <circle
-            android:fillColor="@android:color/white"
-            android:cx="58"
-            android:cy="10"
-            android:r="3"/>
     </group>
 </vector>
