@@ -117,11 +117,11 @@ public class MainActivity extends AppCompatActivity {
     private void registerBroadcastReceiver() {
         broadcastReceiver = new CrawlerBroadcastReceiver();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(\"com.jdcrawler.SERVICE_STATUS\");
-        filter.addAction(\"com.jdcrawler.PROGRESS_UPDATE\");
-        filter.addAction(\"com.jdcrawler.CRAWLING_START\");
-        filter.addAction(\"com.jdcrawler.CRAWLING_STOP\");
-        filter.addAction(\"com.jdcrawler.CRAWLING_COMPLETE\");
+        filter.addAction("com.jdcrawler.SERVICE_STATUS");
+        filter.addAction("com.jdcrawler.PROGRESS_UPDATE");
+        filter.addAction("com.jdcrawler.CRAWLING_START");
+        filter.addAction("com.jdcrawler.CRAWLING_STOP");
+        filter.addAction("com.jdcrawler.CRAWLING_COMPLETE");
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(broadcastReceiver, filter, RECEIVER_NOT_EXPORTED);
@@ -154,14 +154,14 @@ public class MainActivity extends AppCompatActivity {
     private void requestStoragePermission() {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
             new AlertDialog.Builder(this)
-                .setTitle(\"需要存储权限\")
-                .setMessage(\"应用需要存储权限来保存Excel文件\")
-                .setPositiveButton(\"授权\", (dialog, which) -> {
+                .setTitle("需要存储权限")
+                .setMessage("应用需要存储权限来保存Excel文件")
+                .setPositiveButton("授权", (dialog, which) -> {
                     ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 
                         REQUEST_STORAGE_PERMISSION);
                 })
-                .setNegativeButton(\"拒绝\", null)
+                .setNegativeButton("拒绝", null)
                 .show();
         } else {
             ActivityCompat.requestPermissions(this,
@@ -175,14 +175,14 @@ public class MainActivity extends AppCompatActivity {
      */
     private void requestOverlayPermission() {
         new AlertDialog.Builder(this)
-            .setTitle(\"需要悬浮窗权限\")
-            .setMessage(\"开启悬浮窗权限可在爬取过程中显示进度\")
-            .setPositiveButton(\"去设置\", (dialog, which) -> {
+            .setTitle("需要悬浮窗权限")
+            .setMessage("开启悬浮窗权限可在爬取过程中显示进度")
+            .setPositiveButton("去设置", (dialog, which) -> {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse(\"package:\" + getPackageName()));
+                    Uri.parse("package:" + getPackageName()));
                 startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
             })
-            .setNegativeButton(\"跳过\", null)
+            .setNegativeButton("跳过", null)
             .show();
     }
     
@@ -191,30 +191,30 @@ public class MainActivity extends AppCompatActivity {
      */
     private void startCrawling() {
         if (!isAccessibilityServiceEnabled()) {
-            showToast(\"请先开启无障碍服务权限\");
+            showToast("请先开启无障碍服务权限");
             openAccessibilitySettings();
             return;
         }
         
         if (!isJDAppInstalled()) {
-            showToast(\"请先安装京东APP\");
+            showToast("请先安装京东APP");
             return;
         }
         
         // 发送开始爬取的广播
-        Intent intent = new Intent(\"com.jdcrawler.START_CRAWLING\");
+        Intent intent = new Intent("com.jdcrawler.START_CRAWLING");
         sendBroadcast(intent);
         
-        showToast(\"开始爬取，请打开京东APP并浏览商品页面\");
+        showToast("开始爬取，请打开京东APP并浏览商品页面");
     }
     
     /**
      * 停止爬取
      */
     private void stopCrawling() {
-        Intent intent = new Intent(\"com.jdcrawler.STOP_CRAWLING\");
+        Intent intent = new Intent("com.jdcrawler.STOP_CRAWLING");
         sendBroadcast(intent);
-        showToast(\"正在停止爬取...\");
+        showToast("正在停止爬取...");
     }
     
     /**
@@ -222,14 +222,14 @@ public class MainActivity extends AppCompatActivity {
      */
     private void exportData() {
         if (currentProductCount == 0) {
-            showToast(\"没有数据可以导出\");
+            showToast("没有数据可以导出");
             return;
         }
         
         // 这里可以触发导出操作
-        Intent intent = new Intent(\"com.jdcrawler.EXPORT_DATA\");
+        Intent intent = new Intent("com.jdcrawler.EXPORT_DATA");
         sendBroadcast(intent);
-        showToast(\"正在导出数据...\");
+        showToast("正在导出数据...");
     }
     
     /**
@@ -237,30 +237,30 @@ public class MainActivity extends AppCompatActivity {
      */
     private void shareData() {
         if (lastExportedFile.isEmpty()) {
-            showToast(\"请先导出数据\");
+            showToast("请先导出数据");
             return;
         }
         
         try {
             File file = new File(lastExportedFile);
             if (!file.exists()) {
-                showToast(\"文件不存在，请重新导出\");
+                showToast("文件不存在，请重新导出");
                 return;
             }
             
             Uri fileUri = FileProvider.getUriForFile(this, 
-                getPackageName() + \".fileprovider\", file);
+                getPackageName() + ".fileprovider", file);
             
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType(\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\");
+            shareIntent.setType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
-            shareIntent.putExtra(Intent.EXTRA_SUBJECT, \"京东商品数据\");
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "京东商品数据");
             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             
-            startActivity(Intent.createChooser(shareIntent, \"分享Excel文件\"));
+            startActivity(Intent.createChooser(shareIntent, "分享Excel文件"));
             
         } catch (Exception e) {
-            showToast(\"分享失败: \" + e.getMessage());
+            showToast("分享失败: " + e.getMessage());
         }
     }
     
@@ -271,9 +271,9 @@ public class MainActivity extends AppCompatActivity {
         try {
             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             startActivity(intent);
-            showToast(\"请找到并开启'京东爬虫助手'服务\");
+            showToast("请找到并开启'京东爬虫助手'服务");
         } catch (Exception e) {
-            showToast(\"无法打开设置页面\");
+            showToast("无法打开设置页面");
         }
     }
     
@@ -282,10 +282,10 @@ public class MainActivity extends AppCompatActivity {
      */
     private void showHelpDialog() {
         new AlertDialog.Builder(this)
-            .setTitle(\"使用帮助\")
+            .setTitle("使用帮助")
             .setMessage(getString(R.string.tip_how_to_use))
-            .setPositiveButton(\"我知道了\", null)
-            .setNeutralButton(\"打开设置\", (dialog, which) -> openAccessibilitySettings())
+            .setPositiveButton("我知道了", null)
+            .setNeutralButton("打开设置", (dialog, which) -> openAccessibilitySettings())
             .show();
     }
     
@@ -295,10 +295,10 @@ public class MainActivity extends AppCompatActivity {
     private void showUsageTip() {
         if (!isAccessibilityServiceEnabled()) {
             new AlertDialog.Builder(this)
-                .setTitle(\"欢迎使用京东爬虫助手\")
-                .setMessage(\"首次使用需要开启无障碍服务权限\\n\\n点击'开启权限'按钮前往设置页面\")
-                .setPositiveButton(\"开启权限\", (dialog, which) -> openAccessibilitySettings())
-                .setNegativeButton(\"稍后设置\", null)
+                .setTitle("欢迎使用京东爬虫助手")
+                .setMessage("首次使用需要开启无障碍服务权限\\n\\n点击'开启权限'按钮前往设置页面")
+                .setPositiveButton("开启权限", (dialog, which) -> openAccessibilitySettings())
+                .setNegativeButton("稍后设置", null)
                 .setCancelable(false)
                 .show();
         }
@@ -311,34 +311,34 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             // 更新服务状态
             if (isServiceConnected) {
-                tvServiceStatus.setText(\"服务状态：已连接\");
+                tvServiceStatus.setText("服务状态：已连接");
                 tvServiceStatus.setTextColor(getColor(R.color.status_ready));
             } else {
-                tvServiceStatus.setText(\"服务状态：未连接\");
+                tvServiceStatus.setText("服务状态：未连接");
                 tvServiceStatus.setTextColor(getColor(R.color.status_error));
             }
             
             // 更新爬取状态
             if (isCrawling) {
-                tvCrawlingStatus.setText(\"爬取状态：进行中\");
+                tvCrawlingStatus.setText("爬取状态：进行中");
                 tvCrawlingStatus.setTextColor(getColor(R.color.status_crawling));
                 btnStartCrawling.setEnabled(false);
                 btnStopCrawling.setEnabled(true);
             } else {
-                tvCrawlingStatus.setText(\"爬取状态：已停止\");
+                tvCrawlingStatus.setText("爬取状态：已停止");
                 tvCrawlingStatus.setTextColor(getColor(R.color.status_stopped));
                 btnStartCrawling.setEnabled(isServiceConnected);
                 btnStopCrawling.setEnabled(false);
             }
             
             // 更新商品计数
-            tvProductCount.setText(String.format(\"已收集商品：%d个\", currentProductCount));
+            tvProductCount.setText(String.format("已收集商品：%d个", currentProductCount));
             
             // 更新进度
             if (totalProductCount > 0) {
                 int progress = (int) ((float) currentProductCount / totalProductCount * 100);
                 progressBar.setProgress(progress);
-                tvCurrentProgress.setText(String.format(\"进度：%d/%d (%d%%)\", 
+                tvCurrentProgress.setText(String.format("进度：%d/%d (%d%%)", 
                     currentProductCount, totalProductCount, progress));
                 progressBar.setVisibility(View.VISIBLE);
                 tvCurrentProgress.setVisibility(View.VISIBLE);
@@ -362,8 +362,8 @@ public class MainActivity extends AppCompatActivity {
                 getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             
             if (enabledServices != null) {
-                return enabledServices.contains(getPackageName() + \"/\" + 
-                    \"com.jdcrawler.app.service.JDCrawlerAccessibilityService\");
+                return enabledServices.contains(getPackageName() + "/" + 
+                    "com.jdcrawler.app.service.JDCrawlerAccessibilityService");
             }
         } catch (Exception e) {
             // 忽略异常
@@ -376,7 +376,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private boolean isJDAppInstalled() {
         try {
-            getPackageManager().getPackageInfo(\"com.jingdong.app.mall\", 0);
+            getPackageManager().getPackageInfo("com.jingdong.app.mall", 0);
             return true;
         } catch (PackageManager.NameNotFoundException e) {
             return false;
@@ -396,9 +396,9 @@ public class MainActivity extends AppCompatActivity {
         
         if (requestCode == REQUEST_STORAGE_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                showToast(\"存储权限已授予\");
+                showToast("存储权限已授予");
             } else {
-                showToast(\"需要存储权限才能保存文件\");
+                showToast("需要存储权限才能保存文件");
             }
         }
     }
@@ -409,9 +409,9 @@ public class MainActivity extends AppCompatActivity {
         
         if (requestCode == REQUEST_OVERLAY_PERMISSION) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
-                showToast(\"悬浮窗权限已开启\");
+                showToast("悬浮窗权限已开启");
             } else {
-                showToast(\"悬浮窗权限未开启，将无法显示悬浮进度\");
+                showToast("悬浮窗权限未开启，将无法显示悬浮进度");
             }
         }
     }
@@ -434,35 +434,35 @@ public class MainActivity extends AppCompatActivity {
             if (action == null) return;
             
             switch (action) {
-                case \"com.jdcrawler.SERVICE_STATUS\":
-                    isServiceConnected = intent.getBooleanExtra(\"connected\", false);
+                case "com.jdcrawler.SERVICE_STATUS":
+                    isServiceConnected = intent.getBooleanExtra("connected", false);
                     updateUI();
                     break;
                     
-                case \"com.jdcrawler.PROGRESS_UPDATE\":
-                    currentProductCount = intent.getIntExtra(\"current\", 0);
-                    totalProductCount = intent.getIntExtra(\"total\", 0);
+                case "com.jdcrawler.PROGRESS_UPDATE":
+                    currentProductCount = intent.getIntExtra("current", 0);
+                    totalProductCount = intent.getIntExtra("total", 0);
                     updateUI();
                     break;
                     
-                case \"com.jdcrawler.CRAWLING_START\":
+                case "com.jdcrawler.CRAWLING_START":
                     isCrawling = true;
                     updateUI();
-                    showToast(\"爬取已开始\");
+                    showToast("爬取已开始");
                     break;
                     
-                case \"com.jdcrawler.CRAWLING_STOP\":
+                case "com.jdcrawler.CRAWLING_STOP":
                     isCrawling = false;
                     updateUI();
-                    showToast(\"爬取已停止\");
+                    showToast("爬取已停止");
                     break;
                     
-                case \"com.jdcrawler.CRAWLING_COMPLETE\":
+                case "com.jdcrawler.CRAWLING_COMPLETE":
                     isCrawling = false;
-                    int productCount = intent.getIntExtra(\"productCount\", 0);
+                    int productCount = intent.getIntExtra("productCount", 0);
                     currentProductCount = productCount;
                     updateUI();
-                    showToast(\"爬取完成！共收集 \" + productCount + \" 个商品\");
+                    showToast("爬取完成！共收集 " + productCount + " 个商品");
                     break;
             }
         }
