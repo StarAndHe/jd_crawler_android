@@ -5,6 +5,6 @@
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
-    android:packageNames="com.jingdong.app.mall"
+    android:packageNames="com.jingdong.app.mall,com.jd.jdmobile,com.jingdong.jdlite"
     android:description="@string/accessibility_service_description"
     android:settingsActivity="com.jdcrawler.app.MainActivity" />
