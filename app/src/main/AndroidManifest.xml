@@ -17,6 +17,18 @@
     
     <!-- 震动权限 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- 通知权限 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Android 11+ 应用查询权限 -->
+    <queries>
+        <package android:name="com.jingdong.app.mall" />
+        <package android:name="com.jd.jdmobile" />
+        <package android:name="com.jingdong.jdlite" />
+        <package android:name="com.jd.jdlite" />
+        <package android:name="com.jingdong.app.mall.ptlogin" />
+    </queries>
 
     <application
         android:allowBackup="true"
