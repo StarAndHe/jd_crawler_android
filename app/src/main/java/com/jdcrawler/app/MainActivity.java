@@ -197,37 +197,55 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         
+        // 简化检测：只做一次安装检测，用户可以选择跳过
         if (!isJDAppInstalled()) {
-            // 显示跳过检测的选项
             new AlertDialog.Builder(this)
-                .setTitle("未检测到京东APP")
-                .setMessage("系统未检测到京东APP，但您可以选择：\n\n" +
-                           "• 确保已安装京东APP后重试\n" +
-                           "• 跳过检测，直接开始爬取\n\n" +
-                           "注意：如果没有京东APP，爬虫将无法工作")
-                .setPositiveButton("跳过检测，继续", (dialog, which) -> {
-                    forceStartCrawling();
+                .setTitle("京东APP检测")
+                .setMessage("未检测到京东APP，请选择：\n\n" +
+                           "• 确保已安装京东APP后重新检测\n" +
+                           "• 跳过检测，直接开始（推荐）\n\n" +
+                           "提示：爬虫启动后请立即切换到京东APP浏览商品")
+                .setPositiveButton("跳过检测，开始爬取", (dialog, which) -> {
+                    startCrawlingWithInstructions();
                 })
-                .setNegativeButton("取消", null)
-                .setNeutralButton("重新检测", (dialog, which) -> {
-                    // 重新检测
+                .setNegativeButton("重新检测", (dialog, which) -> {
                     startCrawling();
                 })
+                .setNeutralButton("取消", null)
                 .show();
             return;
         }
         
-        // 发送开始爬取的广播
-        forceStartCrawling();
+        // 检测到京东APP，直接开始
+        startCrawlingWithInstructions();
     }
     
     /**
-     * 强制开始爬取（跳过京东APP检测）
+     * 开始爬取并显示使用说明
      */
-    private void forceStartCrawling() {
-        Intent intent = new Intent("com.jdcrawler.START_CRAWLING");
-        sendBroadcast(intent);
-        showToast("开始爬取，请打开京东APP并浏览商品页面");
+    private void startCrawlingWithInstructions() {
+        // 显示详细的使用说明
+        new AlertDialog.Builder(this)
+            .setTitle("爬虫已启动")
+            .setMessage("请按以下步骤操作：\n\n" +
+                       "1. 点击'确定'后，本APP会最小化到后台\n" +
+                       "2. 立即打开京东APP\n" +
+                       "3. 进入任意店铺的商品列表页面\n" +
+                       "4. 爬虫会自动开始工作\n\n" +
+                       "注意：爬虫在后台运行，您可以从通知栏查看进度")
+            .setPositiveButton("确定，开始爬取", (dialog, which) -> {
+                // 启动爬取服务
+                Intent intent = new Intent("com.jdcrawler.START_CRAWLING");
+                sendBroadcast(intent);
+                
+                // 最小化应用
+                moveTaskToBack(true);
+                
+                showToast("爬虫已启动，请打开京东APP");
+            })
+            .setNegativeButton("取消", null)
+            .setCancelable(false)
+            .show();
     }
     
     /**
