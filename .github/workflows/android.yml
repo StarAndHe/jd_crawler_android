@@ -1,26 +1,110 @@
-name: Android CI
+name: Android Build (Fixed)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    
     steps:
-    - uses: actions/checkout@v4
-    - name: set up JDK 11
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 11
       uses: actions/setup-java@v4
       with:
         java-version: '11'
         distribution: 'temurin'
-        cache: gradle
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 34
+        build-tools: 34.0.0
+        
+    - name: Download and setup Gradle
+      run: |
+        echo "下载Gradle..."
+        wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
+        unzip -q gradle-8.2-bin.zip
+        export GRADLE_HOME=$PWD/gradle-8.2
+        export PATH=$GRADLE_HOME/bin:$PATH
+        echo "GRADLE_HOME=$GRADLE_HOME" >> $GITHUB_ENV
+        echo "$GRADLE_HOME/bin" >> $GITHUB_PATH
+        gradle --version
+        
+    - name: Create local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+        echo "创建local.properties文件完成"
+        
+    - name: Build debug APK
+      run: |
+        echo "开始构建APK..."
+        gradle assembleDebug --stacktrace --info
+        echo "APK构建完成"
+        
+    - name: Verify APK exists
+      run: |
+        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+          echo "✅ APK文件生成成功"
+          ls -la app/build/outputs/apk/debug/
+        else
+          echo "❌ APK文件未找到"
+          find . -name "*.apk" -type f
+          exit 1
+        fi
+        
+    - name: Get current timestamp
+      id: timestamp
+      run: echo "timestamp=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+      
+    - name: Rename and prepare APK
+      run: |
+        mkdir -p release-apk
+        cp app/build/outputs/apk/debug/app-debug.apk release-apk/JDCrawler-${{ steps.timestamp.outputs.timestamp }}.apk
+        echo "APK文件已重命名"
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: JDCrawler-APK-${{ steps.timestamp.outputs.timestamp }}
+        path: release-apk/JDCrawler-${{ steps.timestamp.outputs.timestamp }}.apk
+        retention-days: 30
+        
+    - name: Create Release (if main branch)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.timestamp.outputs.timestamp }}
+        name: 京东爬虫助手 v${{ steps.timestamp.outputs.timestamp }}
+        body: |
+          ## 📱 京东商品深度爬虫助手
+          
+          **功能特性:**
+          - ✅ 深度爬取京东店铺商品详情
+          - ✅ 自动提取商品规格参数  
+          - ✅ 生成专业Excel报告
+          - ✅ 无需root权限
+          
+          **使用方法:**
+          1. 下载并安装APK
+          2. 开启无障碍服务权限
+          3. 打开京东APP进入店铺页面
+          4. 启动爬虫开始自动爬取
+          
+          **系统要求:**
+          - Android 7.0+
+          - 京东APP最新版
+          
+          构建时间: ${{ steps.timestamp.outputs.timestamp }}
+        files: release-apk/JDCrawler-${{ steps.timestamp.outputs.timestamp }}.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
