@@ -2,15 +2,24 @@ package com.jdcrawler.app.service;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
+import androidx.core.app.NotificationCompat;
 
 import com.jdcrawler.app.model.ProductInfo;
 import com.jdcrawler.app.manager.PageStateManager;
@@ -31,6 +40,11 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
     private static final String TAG = "JDCrawlerService";
     private static final String JD_PACKAGE_NAME = "com.jingdong.app.mall";
     
+    // 通知栏相关
+    private static final String NOTIFICATION_CHANNEL_ID = "jd_crawler_channel";
+    private static final int NOTIFICATION_ID = 1001;
+    private NotificationManager notificationManager;
+    
     // 核心管理器
     private PageStateManager pageStateManager;
     private NavigationController navigationController;
@@ -40,6 +54,9 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
     private AtomicBoolean isServiceActive = new AtomicBoolean(false);
     private AtomicBoolean isCrawling = new AtomicBoolean(false);
     private Handler mainHandler;
+    
+    // 广播接收器
+    private ServiceBroadcastReceiver broadcastReceiver;
     
     // 爬取进度
     private int totalProductsFound = 0;
@@ -58,10 +75,16 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         
         mainHandler = new Handler(Looper.getMainLooper());
         
+        // 初始化通知栏
+        initNotification();
+        
         // 初始化核心管理器
         pageStateManager = new PageStateManager();
         navigationController = new NavigationController(this);
         dataCollector = new DataCollector();
+        
+        // 注册广播接收器
+        registerBroadcastReceiver();
         
         isServiceActive.set(true);
     }
@@ -82,13 +105,19 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         
         String packageName = event.getPackageName() != null ? event.getPackageName().toString() : "";
         
+        // 记录所有应用的事件（调试用）
+        int eventType = event.getEventType();
+        if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || 
+            eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            Log.d(TAG, "收到事件: " + AccessibilityEvent.eventTypeToString(eventType) + " 来自: " + packageName);
+        }
+        
         // 只处理京东APP的事件
         if (!JD_PACKAGE_NAME.equals(packageName)) {
             return;
         }
         
-        int eventType = event.getEventType();
-        Log.d(TAG, "收到事件: " + AccessibilityEvent.eventTypeToString(eventType));
+        Log.d(TAG, "✓ 处理京东APP事件: " + AccessibilityEvent.eventTypeToString(eventType));
         
         switch (eventType) {
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED:
@@ -391,6 +420,9 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         Log.d(TAG, "开始爬取");
         showToast("开始爬取商品信息");
         
+        // 更新通知栏
+        updateNotification("正在爬取", 0, 0);
+        
         sendCrawlingStartBroadcast();
     }
     
@@ -402,6 +434,10 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
             isCrawling.set(false);
             Log.d(TAG, "停止爬取");
             showToast("已停止爬取");
+            
+            // 更新通知栏
+            updateNotification("已停止", collectedProducts.size(), totalProductsFound);
+            
             sendCrawlingStopBroadcast();
         }
     }
@@ -419,6 +455,9 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         intent.putExtra("current", current);
         intent.putExtra("total", total);
         sendBroadcast(intent);
+        
+        // 同时更新通知栏
+        updateNotification("正在爬取", current, total);
     }
     
     private void sendCrawlingStartBroadcast() {
@@ -443,11 +482,98 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         );
     }
     
+    // ========== 通知栏管理方法 ==========
+    
+    /**
+     * 初始化通知栏
+     */
+    private void initNotification() {
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        
+        // Android 8.0+ 需要创建通知渠道
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "京东爬虫服务",
+                NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("显示爬虫运行状态和控制按钮");
+            channel.setShowBadge(false);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+    
+    /**
+     * 更新通知栏状态
+     */
+    private void updateNotification(String status, int current, int total) {
+        try {
+            // 创建停止爬取的Intent
+            Intent stopIntent = new Intent("com.jdcrawler.STOP_CRAWLING");
+            PendingIntent stopPendingIntent = PendingIntent.getBroadcast(
+                this, 0, stopIntent, 
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0
+            );
+            
+            // 创建打开主界面的Intent
+            Intent openIntent = new Intent(this, com.jdcrawler.app.MainActivity.class);
+            openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent openPendingIntent = PendingIntent.getActivity(
+                this, 0, openIntent,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0
+            );
+            
+            // 构建通知内容
+            String contentText = isCrawling.get() ? 
+                String.format("正在爬取: %d/%d", current, total) : 
+                "爬虫服务运行中，点击查看详情";
+            
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setContentTitle("京东商品爬虫")
+                .setContentText(contentText)
+                .setContentIntent(openPendingIntent)
+                .setOngoing(isCrawling.get())
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setAutoCancel(false);
+            
+            // 添加停止按钮（仅在爬取时显示）
+            if (isCrawling.get()) {
+                builder.addAction(
+                    android.R.drawable.ic_media_pause,
+                    "停止爬取",
+                    stopPendingIntent
+                );
+                
+                // 添加进度条
+                if (total > 0) {
+                    builder.setProgress(total, current, false);
+                }
+            }
+            
+            Notification notification = builder.build();
+            notificationManager.notify(NOTIFICATION_ID, notification);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "更新通知栏失败", e);
+        }
+    }
+    
+    /**
+     * 清除通知栏
+     */
+    private void clearNotification() {
+        if (notificationManager != null) {
+            notificationManager.cancel(NOTIFICATION_ID);
+        }
+    }
+    
     @Override
     public void onInterrupt() {
         Log.d(TAG, "服务被中断");
         isServiceActive.set(false);
         isCrawling.set(false);
+        clearNotification();
     }
     
     @Override
@@ -456,6 +582,75 @@ public class JDCrawlerAccessibilityService extends AccessibilityService {
         Log.d(TAG, "服务销毁");
         isServiceActive.set(false);
         isCrawling.set(false);
+        
+        // 取消注册广播接收器
+        if (broadcastReceiver != null) {
+            unregisterReceiver(broadcastReceiver);
+            broadcastReceiver = null;
+        }
+        
+        clearNotification();
         sendServiceStatusBroadcast(false);
+    }
+    
+    // ========== 广播接收器管理 ==========
+    
+    /**
+     * 注册广播接收器
+     */
+    private void registerBroadcastReceiver() {
+        try {
+            broadcastReceiver = new ServiceBroadcastReceiver();
+            IntentFilter filter = new IntentFilter();
+            filter.addAction("com.jdcrawler.START_CRAWLING");
+            filter.addAction("com.jdcrawler.STOP_CRAWLING");
+            filter.addAction("com.jdcrawler.EXPORT_DATA");
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(broadcastReceiver, filter, RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(broadcastReceiver, filter);
+            }
+            
+            Log.d(TAG, "✓ 广播接收器注册成功");
+        } catch (Exception e) {
+            Log.e(TAG, "× 广播接收器注册失败", e);
+        }
+    }
+    
+    /**
+     * 服务广播接收器
+     */
+    private class ServiceBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action == null) return;
+            
+            Log.d(TAG, "✓ 收到广播: " + action);
+            
+            switch (action) {
+                case "com.jdcrawler.START_CRAWLING":
+                    Log.d(TAG, "收到开始爬取指令");
+                    startCrawling();
+                    break;
+                    
+                case "com.jdcrawler.STOP_CRAWLING":
+                    Log.d(TAG, "收到停止爬取指令");
+                    stopCrawling();
+                    break;
+                    
+                case "com.jdcrawler.EXPORT_DATA":
+                    Log.d(TAG, "收到导出数据指令");
+                    if (!collectedProducts.isEmpty()) {
+                        dataCollector.exportToExcel(collectedProducts, context);
+                    }
+                    break;
+                    
+                default:
+                    Log.w(TAG, "未知的广播动作: " + action);
+                    break;
+            }
+        }
     }
 }
